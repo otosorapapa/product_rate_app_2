@@ -271,3 +271,82 @@ def compute_results(
     ]
     out_cols = [c for c in out_cols if c in df.columns]
     return df[out_cols]
+
+
+def detect_quality_issues(df: pd.DataFrame) -> pd.DataFrame:
+    """Detect missing values, negative outliers and duplicate SKUs.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Product master data.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: product_no, product_name, type, column.
+    """
+    issues: List[Dict[str, Any]] = []
+    required_cols = [
+        "product_no",
+        "product_name",
+        "actual_unit_price",
+        "material_unit_cost",
+        "minutes_per_unit",
+        "daily_qty",
+    ]
+
+    # Missing values
+    for col in required_cols:
+        if col in df.columns:
+            mask = df[col].isna()
+            for sku, name in df.loc[mask, ["product_no", "product_name"]].itertuples(index=False):
+                issues.append(
+                    {
+                        "product_no": sku,
+                        "product_name": name,
+                        "type": "欠損",
+                        "column": col,
+                    }
+                )
+
+    # Negative numeric outliers
+    numeric_cols = [
+        c
+        for c in [
+            "actual_unit_price",
+            "material_unit_cost",
+            "minutes_per_unit",
+            "daily_qty",
+        ]
+        if c in df.columns
+    ]
+    for col in numeric_cols:
+        mask = df[col] < 0
+        for sku, name in df.loc[mask, ["product_no", "product_name"]].itertuples(index=False):
+            issues.append(
+                {
+                    "product_no": sku,
+                    "product_name": name,
+                    "type": "外れ値",
+                    "column": col,
+                }
+            )
+
+    # Duplicate SKUs
+    if "product_no" in df.columns:
+        dup_skus = df[df.duplicated(subset="product_no", keep=False)]["product_no"].unique()
+        for sku in dup_skus:
+            name = ""
+            if "product_name" in df.columns:
+                name = df[df["product_no"] == sku]["product_name"].iloc[0]
+            issues.append(
+                {
+                    "product_no": sku,
+                    "product_name": name,
+                    "type": "重複",
+                    "column": "product_no",
+                }
+            )
+
+    return pd.DataFrame(issues, columns=["product_no", "product_name", "type", "column"])

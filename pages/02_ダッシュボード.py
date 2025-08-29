@@ -9,7 +9,7 @@ import altair as alt
 import plotly.express as px
 from urllib.parse import urlencode
 
-from utils import compute_results
+from utils import compute_results, detect_quality_issues
 from standard_rate_core import DEFAULT_PARAMS, sanitize_params, compute_rates
 from components import render_stepper, render_sidebar_nav
 
@@ -33,7 +33,14 @@ if "df_products_raw" not in st.session_state or st.session_state["df_products_ra
     st.info("先に『① データ入力 & 取り込み』でデータを準備してください。")
     st.stop()
 
-df_products_raw = st.session_state["df_products_raw"]
+df_raw_all = st.session_state["df_products_raw"]
+excluded_skus = st.session_state.get("dq_exclude_skus", [])
+df_products_raw = df_raw_all[~df_raw_all["product_no"].isin(excluded_skus)].copy()
+dq_df = detect_quality_issues(df_products_raw)
+miss_count = int((dq_df["type"] == "欠損").sum())
+out_count = int((dq_df["type"] == "外れ値").sum())
+dup_count = int((dq_df["type"] == "重複").sum())
+affected_skus = dq_df["product_no"].nunique()
 scenarios = st.session_state.get("scenarios", {scenario_name: st.session_state.get("sr_params", DEFAULT_PARAMS)})
 st.session_state["scenarios"] = scenarios
 base_params = scenarios.get(scenario_name, st.session_state.get("sr_params", DEFAULT_PARAMS))
@@ -171,11 +178,38 @@ if qp or qc or qm:
     st.caption(f"Quick試算中: 価格{qp:+d}%, CT{qc:+d}%, 材料{qm:+d}%")
 
 # KPI cards
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("必要賃率 (円/分)", f"{req_rate:,.3f}")
 col2.metric("損益分岐賃率 (円/分)", f"{be_rate:,.3f}")
 col3.metric("必要賃率達成SKU比率", f"{ach_rate:,.1f}%", delta=f"{ach_rate-base_ach_rate:,.1f}%")
 col4.metric("平均 付加価値/分", f"{avg_vapm:,.1f}", delta=f"{avg_vapm-base_avg_vapm:,.1f}")
+with col5:
+    dq_label = f"欠{miss_count} 外{out_count} 重{dup_count} / {affected_skus}SKU"
+    st.markdown(
+        f"<a href='#dq_errors' style='background-color:#ff4d4f;color:white;padding:4px 8px;border-radius:4px;text-decoration:none;font-weight:bold;'>{dq_label}</a>",
+        unsafe_allow_html=True,
+    )
+
+st.markdown("<div id='dq_errors'></div>", unsafe_allow_html=True)
+st.subheader("データ品質エラー一覧")
+if dq_df.empty:
+    st.success("エラーはありません。")
+else:
+    dq_display = dq_df.rename(
+        columns={
+            "product_no": "製品番号",
+            "product_name": "製品名",
+            "type": "種別",
+            "column": "項目",
+        }
+    )
+    dq_display.insert(0, "除外", dq_display["製品番号"].isin(excluded_skus))
+    edited = st.data_editor(dq_display, use_container_width=True, key="dq_editor")
+    new_excluded = edited[edited["除外"]]["製品番号"].unique().tolist()
+    if set(new_excluded) != set(excluded_skus):
+        st.session_state["dq_exclude_skus"] = new_excluded
+        st.rerun()
+st.divider()
 
 # Actionable SKU Top List
 st.subheader("要対策SKUトップリスト")
