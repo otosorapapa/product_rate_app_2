@@ -57,8 +57,17 @@ c2.metric("必要利益計 (円/年)", f"{calc_params.get('required_profit_total
 c3.metric("年間標準稼働分 (分/年)", f"{calc_params.get('annual_minutes', 0):,.0f}")
 
 st.divider()
-st.subheader("製品データ（先頭20件プレビュー）")
-st.dataframe(df_products.head(20), use_container_width=True)
+st.subheader("製品データ")
+keyword = st.text_input("製品番号または名称で検索", "")
+if keyword:
+    mask = (
+        df_products["product_no"].astype(str).str.contains(keyword, regex=False)
+        | df_products["product_name"].astype(str).str.contains(keyword, regex=False)
+    )
+    df_view = df_products[mask]
+else:
+    df_view = df_products
+st.dataframe(df_view, use_container_width=True)
 
 with st.expander("新規製品を追加", expanded=False):
     with st.form("add_product_form"):
@@ -90,6 +99,6 @@ with st.expander("新規製品を追加", expanded=False):
         df_products = pd.concat([df_products, pd.DataFrame([new_row])], ignore_index=True)
         st.session_state["df_products_raw"] = df_products
         st.success("製品を追加しました。")
-        st.experimental_rerun()
+        st.rerun()
 
 st.success("保存しました。上部のナビから『ダッシュボード』へ進んでください。")
