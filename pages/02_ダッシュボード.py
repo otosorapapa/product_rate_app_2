@@ -22,6 +22,13 @@ st.session_state.setdefault("quick_price", 0)
 st.session_state.setdefault("quick_ct", 0)
 st.session_state.setdefault("quick_material", 0)
 
+
+def reset_quick_params() -> None:
+    """Reset quick simulation parameters to their default values."""
+    st.session_state["quick_price"] = 0
+    st.session_state["quick_ct"] = 0
+    st.session_state["quick_material"] = 0
+
 if "df_products_raw" not in st.session_state or st.session_state["df_products_raw"] is None or len(st.session_state["df_products_raw"]) == 0:
     st.info("先に『① データ入力 & 取り込み』でデータを準備してください。")
     st.stop()
@@ -109,23 +116,19 @@ df_view_filtered = df[mask].copy()
 # Quick simulation toggles
 qcol1, qcol2, qcol3, qcol4 = st.columns([1,1,1,0.6])
 with qcol1:
-    st.session_state["quick_price"] = st.radio(
+    st.radio(
         "価格", options=[0,3,5,10], format_func=lambda x: f"+{x}%", key="quick_price", horizontal=True
     )
 with qcol2:
-    st.session_state["quick_ct"] = st.radio(
+    st.radio(
         "CT", options=[0,-5,-10], format_func=lambda x: f"{x}%", key="quick_ct", horizontal=True
     )
 with qcol3:
-    st.session_state["quick_material"] = st.radio(
+    st.radio(
         "材料", options=[0,-3,-5], format_func=lambda x: f"{x}%", key="quick_material", horizontal=True
     )
 with qcol4:
-    if st.button("Undo"):
-        st.session_state["quick_price"] = 0
-        st.session_state["quick_ct"] = 0
-        st.session_state["quick_material"] = 0
-        st.experimental_rerun()
+    st.button("Undo", on_click=reset_quick_params)
 
 qp = st.session_state["quick_price"]
 qc = st.session_state["quick_ct"]
