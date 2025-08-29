@@ -1,6 +1,7 @@
 import math
 import sys
 from pathlib import Path
+import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -10,6 +11,7 @@ from standard_rate_core import (
     compute_rates,
     build_reverse_index,
 )
+from utils import compute_results
 
 
 def test_compute_rates_basic():
@@ -100,3 +102,17 @@ def test_rates_recompute_from_params_no_excel():
     expected_req = (fixed_total + req_profit) / annual_minutes
     assert math.isclose(res["break_even_rate"], expected_be, rel_tol=1e-9, abs_tol=1e-9)
     assert math.isclose(res["required_rate"], expected_req, rel_tol=1e-9, abs_tol=1e-9)
+
+
+def test_compute_results_classification():
+    df = pd.DataFrame({
+        "product_no": [1, 2, 3],
+        "product_name": ["A", "B", "C"],
+        "va_per_min": [5.0, 3.0, 1.0],
+        "material_unit_cost": [0.0, 0.0, 0.0],
+        "minutes_per_unit": [1.0, 1.0, 1.0],
+        "actual_unit_price": [0.0, 0.0, 0.0],
+    })
+    res = compute_results(df, break_even_rate=2.0, required_rate=4.0)
+    classes = res["rate_class"].tolist()
+    assert classes == ["健康商品", "貧血商品", "出血商品"]
