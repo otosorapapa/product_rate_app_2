@@ -56,16 +56,16 @@ global_mpu_min = float(np.nan_to_num(df["minutes_per_unit"].min(), nan=0.0))
 global_mpu_max = float(np.nan_to_num(df["minutes_per_unit"].max(), nan=10.0))
 global_v_min = float(np.nan_to_num(df["va_per_min"].replace([np.inf,-np.inf], np.nan).min(), nan=0.0))
 global_v_max = float(np.nan_to_num(df["va_per_min"].replace([np.inf,-np.inf], np.nan).max(), nan=10.0))
-qparams = st.experimental_get_query_params()
-default_classes = qparams.get("classes", [",".join(classes)])[0].split(",")
+qparams = dict(st.query_params)
+default_classes = qparams.get("classes", ",".join(classes)).split(",")
 default_classes = [c for c in default_classes if c in classes]
-default_search = qparams.get("search", [""])[0]
-mpu_param = qparams.get("mpu", [f"{global_mpu_min},{global_mpu_max}"])[0]
+default_search = qparams.get("search", "")
+mpu_param = qparams.get("mpu", f"{global_mpu_min},{global_mpu_max}")
 try:
     m_min_q, m_max_q = [float(x) for x in mpu_param.split(",")]
 except Exception:
     m_min_q, m_max_q = global_mpu_min, global_mpu_max
-vapm_param = qparams.get("vapm", [f"{global_v_min},{global_v_max}"])[0]
+vapm_param = qparams.get("vapm", f"{global_v_min},{global_v_max}")
 try:
     v_min_q, v_max_q = [float(x) for x in vapm_param.split(",")]
 except Exception:
@@ -94,13 +94,13 @@ if save_btn or share_btn:
         "mpu": f"{mpu_min},{mpu_max}",
         "vapm": f"{vapm_min},{vapm_max}"
     }
-    st.experimental_set_query_params(**state)
+    st.query_params = state
     if share_btn:
         st.session_state["share_link"] = "?" + urlencode(state)
         st.session_state["show_share"] = True
     if save_btn:
         st.session_state["show_saved"] = True
-    st.experimental_rerun()
+    st.rerun()
 if st.session_state.pop("show_saved", False):
     st.success("ビューを保存しました")
 if st.session_state.pop("show_share", False):
