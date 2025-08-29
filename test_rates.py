@@ -113,6 +113,12 @@ def test_compute_results_classification():
         "minutes_per_unit": [1.0, 1.0, 1.0],
         "actual_unit_price": [0.0, 0.0, 0.0],
     })
-    res = compute_results(df, break_even_rate=2.0, required_rate=4.0)
+    res = compute_results(
+        df,
+        break_even_rate=2.0,
+        required_rate=4.0,
+        low_ratio=0.5,
+        high_ratio=1.25,
+    )
     classes = res["rate_class"].tolist()
     assert classes == ["健康商品", "貧血商品", "出血商品"]

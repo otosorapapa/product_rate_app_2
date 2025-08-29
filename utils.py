@@ -34,13 +34,21 @@ def series_or_nan(df: pd.DataFrame, col: str) -> pd.Series:
         return pd.to_numeric(df[col], errors="coerce")
     return pd.Series(np.nan, index=df.index, dtype="float64")
 
-def classify_by_rate(va_per_min: float, break_even_rate: float, required_rate: float) -> str:
-    """製品を賃率で分類する"""
-    if pd.isna(va_per_min):
+def classify_by_rate(
+    va_per_min: float, required_rate: float, low_ratio: float = 0.95, high_ratio: float = 1.05
+) -> str:
+    """製品を賃率で分類する。
+
+    `va_per_min / required_rate` の比率 (δ) が `high_ratio` 以上なら「健康商品」、
+    `low_ratio` 以上 `high_ratio` 未満なら「貧血商品」、それ以外は「出血商品」とする。
+    `required_rate` が 0 もしくは NaN の場合は分類不能として "不明" を返す。
+    """
+    if pd.isna(va_per_min) or required_rate in [0, None] or pd.isna(required_rate):
         return "不明"
-    if va_per_min >= required_rate:
+    delta = va_per_min / required_rate
+    if delta >= high_ratio:
         return "健康商品"
-    if va_per_min >= break_even_rate:
+    if delta >= low_ratio:
         return "貧血商品"
     return "出血商品"
 
@@ -232,7 +240,13 @@ def parse_products(xls: pd.ExcelFile, sheet_name: str="R6.12") -> Tuple[pd.DataF
     return df, warnings
 
 # --------------- Core compute ---------------
-def compute_results(df_products: pd.DataFrame, break_even_rate: float, required_rate: float) -> pd.DataFrame:
+def compute_results(
+    df_products: pd.DataFrame,
+    break_even_rate: float,
+    required_rate: float,
+    low_ratio: float = 0.95,
+    high_ratio: float = 1.05,
+) -> pd.DataFrame:
     df = df_products.copy()
     be_rate = 0.0 if break_even_rate is None else float(break_even_rate)
     req_rate = 0.0 if required_rate is None else float(required_rate)
@@ -244,7 +258,9 @@ def compute_results(df_products: pd.DataFrame, break_even_rate: float, required_
     df["price_gap_vs_required"] = df.get("actual_unit_price") - df["required_selling_price"]
     df["rate_gap_vs_required"] = df.get("va_per_min") - req_rate
     df["meets_required_rate"] = df["rate_gap_vs_required"] >= 0
-    df["rate_class"] = df["va_per_min"].apply(lambda v: classify_by_rate(v, be_rate, req_rate))
+    df["rate_class"] = df["va_per_min"].apply(
+        lambda v: classify_by_rate(v, req_rate, low_ratio, high_ratio)
+    )
     out_cols = [
         "product_no","product_name",
         "actual_unit_price","material_unit_cost",
