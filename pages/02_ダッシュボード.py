@@ -20,6 +20,10 @@ render_sidebar_nav()
 render_stepper(4)
 scenario_name = st.session_state.get("current_scenario", "ベース")
 st.caption(f"適用中シナリオ: {scenario_name}")
+scenario_options = ["ベース", "施策A"]
+selected_scenarios = st.multiselect(
+    "シナリオ選択", scenario_options, default=scenario_options
+)
 st.session_state.setdefault("quick_price", 0)
 st.session_state.setdefault("quick_ct", 0)
 st.session_state.setdefault("quick_material", 0)
@@ -179,18 +183,27 @@ avg_vapm = df_view["va_per_min"].replace([np.inf,-np.inf], np.nan).dropna().mean
 if qp or qc or qm:
     st.caption(f"Quick試算中: 価格{qp:+d}%, CT{qc:+d}%, 材料{qm:+d}%")
 
-# KPI cards
-col1, col2, col3, col4, col5 = st.columns(5)
+    # KPI cards
+col1, col2, col5 = st.columns([1, 1, 1])
 col1.metric("必要賃率 (円/分)", f"{req_rate:,.3f}")
 col2.metric("損益分岐賃率 (円/分)", f"{be_rate:,.3f}")
-col3.metric("必要賃率達成SKU比率", f"{ach_rate:,.1f}%", delta=f"{ach_rate-base_ach_rate:,.1f}%")
-col4.metric("平均 付加価値/分", f"{avg_vapm:,.1f}", delta=f"{avg_vapm-base_avg_vapm:,.1f}")
 with col5:
     dq_label = f"欠{miss_count} 外{out_count} 重{dup_count} / {affected_skus}SKU"
     st.markdown(
         f"<a href='#dq_errors' style='background-color:#ff4d4f;color:white;padding:4px 8px;border-radius:4px;text-decoration:none;font-weight:bold;'>{dq_label}</a>",
         unsafe_allow_html=True,
     )
+
+kpi_data = [
+    {"scenario": "ベース", "KPI": "必要賃率達成SKU比率", "value": base_ach_rate},
+    {"scenario": "ベース", "KPI": "平均 付加価値/分", "value": base_avg_vapm},
+    {"scenario": "施策A", "KPI": "必要賃率達成SKU比率", "value": ach_rate},
+    {"scenario": "施策A", "KPI": "平均 付加価値/分", "value": avg_vapm},
+]
+kpi_df = pd.DataFrame(kpi_data)
+kpi_df = kpi_df[kpi_df["scenario"].isin(selected_scenarios)]
+fig_kpi = px.bar(kpi_df, x="KPI", y="value", color="scenario", barmode="group", opacity=0.5)
+st.plotly_chart(fig_kpi, use_container_width=True)
 
 st.markdown("<div id='dq_errors'></div>", unsafe_allow_html=True)
 st.subheader("データ品質エラー一覧")
@@ -269,23 +282,23 @@ with tabs[0]:
     st.caption(
         "横軸=分/個（製造リードタイム）, 縦軸=付加価値/分。必要賃率×δ帯と損益分岐賃率を表示。"
     )
-    df_view["margin_to_req"] = req_rate - df_view["va_per_min"]
-    color_map = {"健康商品": "#009E73", "貧血商品": "#0072B2", "出血商品": "#D55E00", "不明": "#999999"}
-    symbol_map = {"健康商品": "circle", "貧血商品": "triangle-up", "出血商品": "square", "不明": "x"}
+    df_base["scenario"] = "ベース"
+    df_view["scenario"] = "施策A"
+    scatter_df = pd.concat([df_base, df_view], ignore_index=True)
+    scatter_df = scatter_df[scatter_df["scenario"].isin(selected_scenarios)].copy()
+    scatter_df["margin_to_req"] = req_rate - scatter_df["va_per_min"]
     fig = px.scatter(
-        df_view,
+        scatter_df,
         x="minutes_per_unit",
         y="va_per_min",
-        color="rate_class",
-        symbol="rate_class",
-        color_discrete_map=color_map,
-        symbol_map=symbol_map,
+        color="scenario",
         hover_data={
             "product_name": True,
             "minutes_per_unit": ":.2f",
             "va_per_min": ":.2f",
             "margin_to_req": ":.2f",
         },
+        opacity=0.5,
         height=420,
     )
     fig.add_hrect(
