@@ -34,7 +34,8 @@ rate_lines = []
 for name, p in scenarios.items():
     sp, _ = sanitize_params(p)
     _, rr = compute_rates(sp)
-    rate_lines.append({"name": name, "y": rr["required_rate"]})
+    rate_lines.append({"scenario": name, "type": "必要賃率", "y": rr["required_rate"]})
+    rate_lines.append({"scenario": name, "type": "損益分岐賃率", "y": rr["break_even_rate"]})
 
 with st.expander("表示設定", expanded=False):
     topn = int(st.slider("未達SKUの上位件数（テーブル/パレート）", min_value=5, max_value=50, value=20, step=1))
@@ -66,15 +67,18 @@ col4.metric("平均 付加価値/分", f"{avg_vapm:,.1f}")
 tabs = st.tabs(["全体分布（散布図）", "達成状況（棒/円）", "未達SKU（パレート）", "SKUテーブル"])
 
 with tabs[0]:
-    st.caption("横軸=分/個（製造リードタイム）, 縦軸=付加価値/分。色線=各シナリオの必要賃率。")
+    st.caption("横軸=分/個（製造リードタイム）, 縦軸=付加価値/分。色線=各シナリオの必要賃率と損益分岐賃率。")
     base = alt.Chart(df_view).mark_circle().encode(
         x=alt.X("minutes_per_unit:Q", title="分/個"),
         y=alt.Y("va_per_min:Q", title="付加価値/分"),
         tooltip=["product_name:N","minutes_per_unit:Q","va_per_min:Q","rate_class:N"]
     ).properties(height=420)
     color = base.encode(color=alt.Color("rate_class:N", legend=alt.Legend(title="分類")))
-    rule_chart = alt.Chart(pd.DataFrame(rate_lines)).mark_rule().encode(y="y:Q", color="name:N")
-    st.altair_chart(color + rule_chart, use_container_width=True)
+    rule_chart = alt.Chart(pd.DataFrame(rate_lines)).mark_rule().encode(
+        y="y:Q", color="scenario:N", strokeDash="type:N"
+    )
+    layered = (color + rule_chart).resolve_scale(color="independent")
+    st.altair_chart(layered, use_container_width=True)
 
 with tabs[1]:
     c1, c2 = st.columns([1.2,1])

@@ -34,15 +34,15 @@ def series_or_nan(df: pd.DataFrame, col: str) -> pd.Series:
         return pd.to_numeric(df[col], errors="coerce")
     return pd.Series(np.nan, index=df.index, dtype="float64")
 
-def classify_rate_gap(gap: float) -> str:
-    """分類用に賃率差を評価する"""
-    if pd.isna(gap):
+def classify_by_rate(va_per_min: float, break_even_rate: float, required_rate: float) -> str:
+    """製品を賃率で分類する"""
+    if pd.isna(va_per_min):
         return "不明"
-    if gap >= 1.0:
-        return "余裕あり"
-    if gap >= 0:
-        return "達成"
-    return "未達"
+    if va_per_min >= required_rate:
+        return "健康商品"
+    if va_per_min >= break_even_rate:
+        return "貧血商品"
+    return "出血商品"
 
 # --------------- Excel parsing ---------------
 def read_excel_safely(path_or_bytes) -> Optional[pd.ExcelFile]:
@@ -244,7 +244,7 @@ def compute_results(df_products: pd.DataFrame, break_even_rate: float, required_
     df["price_gap_vs_required"] = df.get("actual_unit_price") - df["required_selling_price"]
     df["rate_gap_vs_required"] = df.get("va_per_min") - req_rate
     df["meets_required_rate"] = df["rate_gap_vs_required"] >= 0
-    df["rate_class"] = df["rate_gap_vs_required"].apply(classify_rate_gap)
+    df["rate_class"] = df["va_per_min"].apply(lambda v: classify_by_rate(v, be_rate, req_rate))
     out_cols = [
         "product_no","product_name",
         "actual_unit_price","material_unit_cost",
