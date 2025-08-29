@@ -183,10 +183,46 @@ avg_vapm = df_view["va_per_min"].replace([np.inf,-np.inf], np.nan).dropna().mean
 if qp or qc or qm:
     st.caption(f"Quick試算中: 価格{qp:+d}%, CT{qc:+d}%, 材料{qm:+d}%")
 
-    # KPI cards
-col1, col2, col5 = st.columns([1, 1, 1])
-col1.metric("必要賃率 (円/分)", f"{req_rate:,.3f}")
-col2.metric("損益分岐賃率 (円/分)", f"{be_rate:,.3f}")
+# === KPI Targets & Cards ===
+role = st.session_state.get("role", "一般")
+st.session_state.setdefault("target_req_rate", req_rate)
+st.session_state.setdefault("target_ach_rate", ach_rate)
+with st.sidebar.expander("KPI目標設定", expanded=False):
+    if role in ("経営者", "管理者"):
+        st.session_state["target_req_rate"] = st.number_input(
+            "目標必要賃率 (円/分)", value=st.session_state["target_req_rate"], format="%.3f"
+        )
+        st.session_state["target_ach_rate"] = st.number_input(
+            "目標達成率 (%)", value=st.session_state["target_ach_rate"], format="%.1f"
+        )
+    else:
+        st.number_input(
+            "目標必要賃率 (円/分)", value=st.session_state["target_req_rate"], format="%.3f", disabled=True
+        )
+        st.number_input(
+            "目標達成率 (%)", value=st.session_state["target_ach_rate"], format="%.1f", disabled=True
+        )
+target_req_rate = st.session_state["target_req_rate"]
+target_ach_rate = st.session_state["target_ach_rate"]
+
+
+def _render_target_badge(col, text: str) -> None:
+    col.markdown(
+        f"<div style='text-align:right'><span style='background-color:#f0f2f6;padding:2px 6px;border-radius:4px;font-size:0.8em;'>🎯{text}</span></div>",
+        unsafe_allow_html=True,
+    )
+
+
+col1, col2, col3, col5 = st.columns([1, 1, 1, 1])
+_render_target_badge(col1, f"{target_req_rate:,.3f}")
+col1.metric(
+    "必要賃率 (円/分)", f"{req_rate:,.3f}", delta=f"{req_rate - target_req_rate:+.3f}"
+)
+_render_target_badge(col2, f"{target_ach_rate:.1f}%")
+col2.metric(
+    "必要賃率達成率 (%)", f"{ach_rate:.1f}", delta=f"{ach_rate - target_ach_rate:+.1f}"
+)
+col3.metric("損益分岐賃率 (円/分)", f"{be_rate:,.3f}")
 with col5:
     dq_label = f"欠{miss_count} 外{out_count} 重{dup_count} / {affected_skus}SKU"
     st.markdown(
