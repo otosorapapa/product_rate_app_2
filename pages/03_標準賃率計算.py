@@ -31,20 +31,20 @@ selected = st.sidebar.selectbox("シナリオ選択", names, index=names.index(c
 if selected != current:
     st.session_state["current_scenario"] = selected
     st.session_state["sr_params"] = scenarios[selected].copy()
-    st.experimental_rerun()
+    st.rerun()
 
 new_name = st.sidebar.text_input("新規シナリオ名", "")
 if st.sidebar.button("追加") and new_name:
     scenarios[new_name] = params.copy()
     st.session_state["current_scenario"] = new_name
     st.session_state["sr_params"] = params.copy()
-    st.experimental_rerun()
+    st.rerun()
 
 if current != "ベース" and st.sidebar.button("削除"):
     del scenarios[current]
     st.session_state["current_scenario"] = "ベース"
     st.session_state["sr_params"] = scenarios["ベース"].copy()
-    st.experimental_rerun()
+    st.rerun()
 
 st.sidebar.header("入力")
 placeholders = {}
