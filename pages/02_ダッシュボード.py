@@ -45,10 +45,26 @@ req_rate = base_results["required_rate"]
 for w in warn_list:
     st.warning(w)
 
-with st.expander("表示設定", expanded=False):
-    topn = int(st.slider("未達SKUの上位件数（テーブル/パレート）", min_value=5, max_value=50, value=20, step=1))
+# Baseline classification for reclassification counts
+df_default = compute_results(df_products_raw, be_rate, req_rate)
 
-df = compute_results(df_products_raw, be_rate, req_rate)
+# Threshold tuning slider within filter panel
+dcol1, dcol2 = st.columns([2, 0.8])
+delta_low, delta_high = dcol1.slider(
+    "δ = VA/分 ÷ 必要賃率 の境界",
+    min_value=0.5,
+    max_value=1.5,
+    value=(0.95, 1.05),
+    step=0.01,
+)
+df = compute_results(df_products_raw, be_rate, req_rate, delta_low, delta_high)
+reclassified = int((df["rate_class"] != df_default["rate_class"]).sum())
+dcol2.metric("再分類SKU", reclassified)
+
+with st.expander("表示設定", expanded=False):
+    topn = int(
+        st.slider("未達SKUの上位件数（テーブル/パレート）", min_value=5, max_value=50, value=20, step=1)
+    )
 
 # Global filters with view save/share
 classes = df["rate_class"].dropna().unique().tolist()
@@ -148,7 +164,7 @@ df_sim["daily_total_minutes"] = df_sim["minutes_per_unit"] * df_sim["daily_qty"]
 df_sim["daily_va"] = df_sim["gp_per_unit"] * df_sim["daily_qty"]
 with np.errstate(divide='ignore', invalid='ignore'):
     df_sim["va_per_min"] = df_sim["daily_va"] / df_sim["daily_total_minutes"]
-df_view = compute_results(df_sim, be_rate, req_rate)
+df_view = compute_results(df_sim, be_rate, req_rate, delta_low, delta_high)
 ach_rate = (df_view["meets_required_rate"].mean()*100.0) if len(df_view)>0 else 0.0
 avg_vapm = df_view["va_per_min"].replace([np.inf,-np.inf], np.nan).dropna().mean() if "va_per_min" in df_view else 0.0
 if qp or qc or qm:
@@ -214,7 +230,9 @@ else:
 tabs = st.tabs(["全体分布（散布図）", "達成状況（棒/円）", "未達SKU（パレート）", "SKUテーブル", "付加価値/分分布"])
 
 with tabs[0]:
-    st.caption("横軸=分/個（製造リードタイム）, 縦軸=付加価値/分。必要賃率±5%帯と損益分岐賃率を表示。")
+    st.caption(
+        "横軸=分/個（製造リードタイム）, 縦軸=付加価値/分。必要賃率×δ帯と損益分岐賃率を表示。"
+    )
     df_view["margin_to_req"] = req_rate - df_view["va_per_min"]
     color_map = {"健康商品": "#009E73", "貧血商品": "#0072B2", "出血商品": "#D55E00", "不明": "#999999"}
     symbol_map = {"健康商品": "circle", "貧血商品": "triangle-up", "出血商品": "square", "不明": "x"}
@@ -234,7 +252,13 @@ with tabs[0]:
         },
         height=420,
     )
-    fig.add_hrect(y0=req_rate*0.95, y1=req_rate*1.05, line_width=0, fillcolor="#009E73", opacity=0.15)
+    fig.add_hrect(
+        y0=req_rate * delta_low,
+        y1=req_rate * delta_high,
+        line_width=0,
+        fillcolor="#009E73",
+        opacity=0.15,
+    )
     fig.add_hline(y=req_rate, line_color="#009E73")
     fig.add_hline(y=be_rate, line_color="#D55E00", line_dash="dash")
     st.plotly_chart(fig, use_container_width=True)
