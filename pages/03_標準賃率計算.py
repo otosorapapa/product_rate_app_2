@@ -6,6 +6,7 @@ import json
 import streamlit as st
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 from components import render_stepper, render_sidebar_nav
 
 from standard_rate_core import (
@@ -102,6 +103,50 @@ c1.metric("損益分岐賃率（円/分）", f"{results['break_even_rate']:.3f}"
 c2.metric("必要賃率（円/分）", f"{results['required_rate']:.3f}")
 c3.metric("年間標準稼働時間（分）", f"{results['annual_minutes']:.0f}")
 c4.metric("正味直接工員数合計", f"{results['net_workers']:.2f}")
+
+_, wf_col = st.columns([3, 1])
+with wf_col:
+    with st.expander("必要賃率ウォーターフォール", expanded=False):
+        prev_params = st.session_state.get("prev_month_params")
+        if prev_params is not None:
+            _, prev_res = compute_rates(prev_params)
+            f_prev = prev_res["fixed_total"]
+            p_prev = prev_res["required_profit_total"]
+            m_prev = prev_res["annual_minutes"]
+            r_prev = prev_res["required_rate"]
+            f_cur = results["fixed_total"]
+            p_cur = results["required_profit_total"]
+            m_cur = results["annual_minutes"]
+            r_cur = results["required_rate"]
+            diff_fixed = (f_cur - f_prev) / m_prev
+            diff_profit = (p_cur - p_prev) / m_prev
+            diff_minutes = r_cur - r_prev - diff_fixed - diff_profit
+            wf_fig = go.Figure(
+                go.Waterfall(
+                    x=["前月必要賃率", "固定費差分", "必要利益差分", "年間稼働分差分", "当月必要賃率"],
+                    measure=["absolute", "relative", "relative", "relative", "total"],
+                    y=[r_prev, diff_fixed, diff_profit, diff_minutes, r_cur],
+                    increasing={"marker": {"color": "#D55E00"}},
+                    decreasing={"marker": {"color": "#009E73"}},
+                    totals={"marker": {"color": "#0072B2"}},
+                )
+            )
+            wf_fig.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), showlegend=False)
+            st.plotly_chart(wf_fig, use_container_width=True)
+            comp_table = pd.DataFrame(
+                {
+                    "項目": ["固定費計", "必要利益計", "年間標準稼働分", "必要賃率"],
+                    "前月": [f_prev, p_prev, m_prev, r_prev],
+                    "当月": [f_cur, p_cur, m_cur, r_cur],
+                }
+            )
+            comp_table["差額"] = comp_table["当月"] - comp_table["前月"]
+            styled = comp_table.style.applymap(
+                lambda v: "color:red" if v > 0 else "color:blue", subset=["差額"]
+            )
+            st.dataframe(styled, use_container_width=True)
+        else:
+            st.info("前月データがありません。")
 
 st.subheader("ブレークダウン")
 cat_map = {
