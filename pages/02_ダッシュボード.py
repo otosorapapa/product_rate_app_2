@@ -11,9 +11,10 @@ from urllib.parse import urlencode
 
 from utils import compute_results
 from standard_rate_core import DEFAULT_PARAMS, sanitize_params, compute_rates
-from components import render_stepper
+from components import render_stepper, render_sidebar_nav
 
 st.title("② ダッシュボード")
+render_sidebar_nav()
 render_stepper(4)
 scenario_name = st.session_state.get("current_scenario", "ベース")
 st.caption(f"適用中シナリオ: {scenario_name}")
