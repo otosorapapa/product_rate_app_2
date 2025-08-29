@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import altair as alt
+import plotly.express as px
 from urllib.parse import urlencode
 
 from utils import compute_results
@@ -213,37 +214,26 @@ with tabs[0]:
     df_view["margin_to_req"] = req_rate - df_view["va_per_min"]
     color_map = {"健康商品": "#009E73", "貧血商品": "#0072B2", "出血商品": "#D55E00", "不明": "#999999"}
     symbol_map = {"健康商品": "circle", "貧血商品": "triangle-up", "出血商品": "square", "不明": "x"}
-    scatter = (
-        alt.Chart(df_view)
-        .mark_point(size=60)
-        .encode(
-            x=alt.X("minutes_per_unit:Q", title="分/個（製造リードタイム)"),
-            y=alt.Y("va_per_min:Q", title="付加価値/分"),
-            color=alt.Color(
-                "rate_class:N",
-                scale=alt.Scale(domain=list(color_map.keys()), range=list(color_map.values())),
-                title="達成分類",
-            ),
-            shape=alt.Shape(
-                "rate_class:N",
-                scale=alt.Scale(domain=list(symbol_map.keys()), range=list(symbol_map.values())),
-                title="達成分類",
-            ),
-            tooltip=[
-                alt.Tooltip("product_name:N", title="product_name"),
-                alt.Tooltip("minutes_per_unit:Q", format=".2f"),
-                alt.Tooltip("va_per_min:Q", format=".2f"),
-                alt.Tooltip("margin_to_req:Q", format=".2f"),
-            ],
-        )
-        .properties(height=420)
+    fig = px.scatter(
+        df_view,
+        x="minutes_per_unit",
+        y="va_per_min",
+        color="rate_class",
+        symbol="rate_class",
+        color_discrete_map=color_map,
+        symbol_map=symbol_map,
+        hover_data={
+            "product_name": True,
+            "minutes_per_unit": ":.2f",
+            "va_per_min": ":.2f",
+            "margin_to_req": ":.2f",
+        },
+        height=420,
     )
-    band_df = pd.DataFrame({"y0": [req_rate * 0.95], "y1": [req_rate * 1.05]})
-    band = alt.Chart(band_df).mark_rect(opacity=0.15, color="#009E73").encode(y="y0:Q", y2="y1:Q")
-    req_line = alt.Chart(pd.DataFrame({"y": [req_rate]})).mark_rule(color="#009E73")
-    be_line = alt.Chart(pd.DataFrame({"y": [be_rate]})).mark_rule(color="#D55E00", strokeDash=[4, 4])
-    chart = (band + req_line + be_line + scatter).interactive()
-    st.altair_chart(chart, use_container_width=True)
+    fig.add_hrect(y0=req_rate*0.95, y1=req_rate*1.05, line_width=0, fillcolor="#009E73", opacity=0.15)
+    fig.add_hline(y=req_rate, line_color="#009E73")
+    fig.add_hline(y=be_rate, line_color="#D55E00", line_dash="dash")
+    st.plotly_chart(fig, use_container_width=True)
 
 with tabs[1]:
     c1, c2 = st.columns([1.2,1])
