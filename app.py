@@ -1,9 +1,13 @@
 import streamlit as st
+from components import render_stepper
 
 st.set_page_config(page_title="賃率ダッシュボード", layout="wide")
 
 st.title("製品賃率ダッシュボード")
 st.caption("📊 Excel（標賃 / R6.12）から賃率KPIを自動計算し、SKU別の達成状況を可視化します。")
+
+# Progress stepper for wizard flow
+render_stepper(0)
 
 st.write("次のページから機能を選択してください。")
 

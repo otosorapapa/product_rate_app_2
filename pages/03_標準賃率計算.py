@@ -6,6 +6,7 @@ import json
 import streamlit as st
 import numpy as np
 import pandas as pd
+from components import render_stepper
 
 from standard_rate_core import (
     DEFAULT_PARAMS,
@@ -17,6 +18,7 @@ from standard_rate_core import (
 )
 
 st.title("③ 標準賃率 計算/感度分析")
+render_stepper(4)
 scenarios = st.session_state.setdefault("scenarios", {"ベース": st.session_state.get("sr_params", DEFAULT_PARAMS)})
 current = st.session_state.setdefault("current_scenario", "ベース")
 st.caption(f"適用中シナリオ: {current}")

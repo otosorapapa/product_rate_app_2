@@ -5,8 +5,10 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import streamlit as st
 import pandas as pd
 from utils import read_excel_safely, parse_hyochin, parse_products
+from components import render_stepper
 
 st.title("① データ入力 & 取り込み")
+render_stepper(1)
 
 default_path = "data/sample.xlsx"
 file = st.file_uploader("Excelをアップロード（未指定ならサンプルを使用）", type=["xlsx"])
