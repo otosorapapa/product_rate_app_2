@@ -1,7 +1,9 @@
 import streamlit as st
-from components import render_stepper
+from components import render_stepper, render_sidebar_nav
 
 st.set_page_config(page_title="賃率ダッシュボード", layout="wide")
+
+render_sidebar_nav()
 
 st.title("製品賃率ダッシュボード")
 st.caption("📊 Excel（標賃 / R6.12）から賃率KPIを自動計算し、SKU別の達成状況を可視化します。")
