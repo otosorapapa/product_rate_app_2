@@ -81,6 +81,56 @@ col3.metric("必要賃率達成SKU比率", f"{ach_rate:,.1f}%")
 avg_vapm = df_view["va_per_min"].replace([np.inf,-np.inf], np.nan).dropna().mean() if "va_per_min" in df_view else 0.0
 col4.metric("平均 付加価値/分", f"{avg_vapm:,.1f}")
 
+# Actionable SKU Top List
+st.subheader("要対策SKUトップリスト")
+st.caption("ギャップ = 必要賃率 - 付加価値/分")
+gap_df = df_view.copy()
+gap_df["gap"] = req_rate - gap_df["va_per_min"]
+gap_df = gap_df[gap_df["gap"] > 0]
+gap_df["price_improve"] = (gap_df["required_selling_price"] - gap_df["actual_unit_price"]).clip(lower=0)
+gap_df["ct_improve"] = (gap_df["minutes_per_unit"] - (gap_df["gp_per_unit"] / req_rate)).clip(lower=0)
+gap_df["material_improve"] = (
+    gap_df["material_unit_cost"]
+    - (gap_df["actual_unit_price"] - req_rate * gap_df["minutes_per_unit"])
+).clip(lower=0)
+gap_df["roi_months"] = gap_df["price_improve"].replace({0: np.nan}) / gap_df["gap"].replace({0: np.nan})
+top_list = gap_df.sort_values("gap", ascending=False).head(20)
+top5 = top_list.head(5)
+if len(top5) > 0:
+    card_cols = st.columns(len(top5))
+    for col, row in zip(card_cols, top5.to_dict("records")):
+        col.metric(row["product_name"], f"{row['gap']:.2f}", delta=f"ROI {row['roi_months']:.1f}月")
+        col.caption(
+            f"価格+{row['price_improve']:.1f}, CT-{row['ct_improve']:.2f}, 材料-{row['material_improve']:.1f}"
+        )
+
+    table = top_list[[
+        "product_no","product_name","gap","price_improve","ct_improve","material_improve","roi_months"
+    ]].rename(columns={
+        "product_no":"製品番号",
+        "product_name":"製品名",
+        "gap":"ギャップ",
+        "price_improve":"価格改善",
+        "ct_improve":"CT改善",
+        "material_improve":"材料改善",
+        "roi_months":"想定ROI(月)"
+    })
+    table.insert(0, "選択", False)
+    edited = st.data_editor(table, use_container_width=True, key="action_sku_editor")
+    csv_top = edited.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        "CSV出力",
+        data=csv_top,
+        file_name="action_sku_top20.csv",
+        mime="text/csv",
+    )
+    selected = edited[edited["選択"]]
+    if st.button("シナリオに反映"):
+        st.session_state["selected_action_skus"] = selected
+        st.success(f"{len(selected)}件をシナリオに反映しました")
+else:
+    st.info("要対策SKUはありません。")
+
 tabs = st.tabs(["全体分布（散布図）", "達成状況（棒/円）", "未達SKU（パレート）", "SKUテーブル", "付加価値/分分布"])
 
 with tabs[0]:
