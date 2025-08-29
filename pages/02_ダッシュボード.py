@@ -7,6 +7,8 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from urllib.parse import urlencode
 
 from utils import compute_results, detect_quality_issues
@@ -261,7 +263,7 @@ if len(top5) > 0:
 else:
     st.info("要対策SKUはありません。")
 
-tabs = st.tabs(["全体分布（散布図）", "達成状況（棒/円）", "未達SKU（パレート）", "SKUテーブル", "付加価値/分分布"])
+tabs = st.tabs(["全体分布（散布図）", "時系列", "達成状況（棒/円）", "未達SKU（パレート）", "SKUテーブル", "付加価値/分分布"])
 
 with tabs[0]:
     st.caption(
@@ -298,6 +300,37 @@ with tabs[0]:
     st.plotly_chart(fig, use_container_width=True)
 
 with tabs[1]:
+    st.caption("月次の達成SKU比率と平均VA/分の推移。ベースと施策Aを比較。")
+    trend_df = st.session_state.get("monthly_trend")
+    if trend_df is None or trend_df.empty:
+        months = pd.date_range(end=pd.Timestamp.today(), periods=6, freq="M")
+        base = pd.DataFrame({
+            "month": months,
+            "achieved_ratio": np.linspace(0.6, 0.7, len(months)),
+            "va_per_min": np.linspace(100, 110, len(months)),
+            "scenario": "ベース",
+        })
+        plan = base.copy()
+        plan["achieved_ratio"] += 0.05
+        plan["va_per_min"] += 5
+        plan["scenario"] = "施策A"
+        trend_df = pd.concat([base, plan], ignore_index=True)
+    fig_ts = make_subplots(specs=[[{"secondary_y": True}]])
+    for scen, g in trend_df.groupby("scenario"):
+        fig_ts.add_trace(
+            go.Scatter(x=g["month"], y=g["achieved_ratio"], mode="lines+markers", name=f"{scen} 達成比率"),
+            secondary_y=False,
+        )
+        fig_ts.add_trace(
+            go.Scatter(x=g["month"], y=g["va_per_min"], mode="lines+markers", name=f"{scen} 平均VA/分"),
+            secondary_y=True,
+        )
+    fig_ts.update_yaxes(title_text="達成SKU比率", range=[0,1], secondary_y=False)
+    fig_ts.update_yaxes(title_text="平均VA/分", secondary_y=True)
+    fig_ts.update_layout(hovermode="x unified")
+    st.plotly_chart(fig_ts, use_container_width=True)
+
+with tabs[2]:
     c1, c2 = st.columns([1.2,1])
     class_counts = df_view["rate_class"].value_counts().reset_index()
     class_counts.columns = ["rate_class", "count"]
@@ -316,7 +349,7 @@ with tabs[1]:
     donut = alt.Chart(donut_df).mark_arc(innerRadius=80).encode(theta="value:Q", color="group:N", tooltip=["group","value"])
     c2.altair_chart(donut, use_container_width=True)
 
-with tabs[2]:
+with tabs[3]:
     miss = df_view[df_view["meets_required_rate"] == False].copy()
     miss = miss.sort_values("rate_gap_vs_required").head(topn)
     st.caption("『必要賃率差』が小さい（またはマイナスが大）の順。右ほど改善余地が大。")
@@ -331,7 +364,7 @@ with tabs[2]:
         st.altair_chart(pareto, use_container_width=True)
         st.dataframe(miss[["product_no","product_name","minutes_per_unit","va_per_min","rate_gap_vs_required","price_gap_vs_required"]], use_container_width=True)
 
-with tabs[3]:
+with tabs[4]:
     rename_map = {
         "product_no": "製品番号",
         "product_name": "製品名",
@@ -363,7 +396,7 @@ with tabs[3]:
     csv = df_table.to_csv(index=False).encode("utf-8-sig")
     st.download_button("結果をCSVでダウンロード", data=csv, file_name="calc_results.csv", mime="text/csv")
 
-with tabs[4]:
+with tabs[5]:
     hist = alt.Chart(df_view).mark_bar().encode(
         x=alt.X("va_per_min:Q", bin=alt.Bin(maxbins=30), title="付加価値/分"),
         y=alt.Y("count()", title="件数"),
