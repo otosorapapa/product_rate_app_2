@@ -1,9 +1,8 @@
-streamlit>=1.36.0
-pandas>=2.1.0
-openpyxl>=3.1.0
-numpy>=1.24.0
-altair>=5.0.0
-matplotlib>=3.7.0
-reportlab>=4.0.0
-streamlit_js_eval>=0.1.0
-plotly>=5.0.0
+streamlit==1.36.0
+pandas==2.1.4
+numpy==1.26.4
+plotly==5.19.0
+pydantic==2.6.4
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+structlog==23.2.0
