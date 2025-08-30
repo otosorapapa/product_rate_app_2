@@ -1,24 +1,17 @@
 import streamlit as st
-from components import render_stepper, render_sidebar_nav
+from core.constants import DEFAULT_MASTER, DEFAULT_SCENARIO
 
 st.set_page_config(page_title="賃率ダッシュボード", layout="wide")
 
-render_sidebar_nav()
-
 st.title("製品賃率ダッシュボード")
-st.caption("📊 Excel（標賃 / R6.12）から賃率KPIを自動計算し、SKU別の達成状況を可視化します。")
+st.caption("製造業向けの標準賃率計算ツール")
 
-# Progress stepper for wizard flow
-render_stepper(0)
+# Initialise session state
+st.session_state.setdefault("master", DEFAULT_MASTER.model_dump())
+st.session_state.setdefault("scenario", DEFAULT_SCENARIO.model_dump())
 
-st.write("次のページから機能を選択してください。")
-
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.page_link("pages/01_データ入力.py", label="① データ入力 & 取り込み", icon="📥")
-with c2:
-    st.page_link("pages/02_ダッシュボード.py", label="② ダッシュボード", icon="📊")
-with c3:
-    st.page_link("pages/03_標準賃率計算.py", label="③ 標準賃率 計算/感度分析", icon="🧮")
-
-st.info("まずは『データ入力 & 取り込み』で Excel を読み込むか、サンプルを使用してください。")
+st.page_link("ui/pages/1_📊_ダッシュボード.py", label="📊 ダッシュボード", icon="📊")
+st.page_link("ui/pages/2_🧮_入力_マスター.py", label="🧮 入力 マスター", icon="🧮")
+st.page_link("ui/pages/3_🧪_シミュレーション.py", label="🧪 シミュレーション", icon="🧪")
+st.page_link("ui/pages/4_📑_結果_エクスポート.py", label="📑 結果 エクスポート", icon="📑")
+st.page_link("ui/pages/9_🛠️_DevTools_ログ.py", label="🛠️ DevTools ログ", icon="🛠️")
