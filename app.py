@@ -1,7 +1,9 @@
 import streamlit as st
 from core.constants import DEFAULT_MASTER, DEFAULT_SCENARIO
+from ui.theming import apply_theme
 
 st.set_page_config(page_title="賃率ダッシュボード", layout="wide")
+apply_theme()
 
 st.title("製品賃率ダッシュボード")
 st.caption("製造業向けの標準賃率計算ツール")

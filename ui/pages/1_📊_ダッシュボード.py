@@ -3,7 +3,9 @@ from core.constants import DEFAULT_MASTER, DEFAULT_SCENARIO
 from core.models import Master, Scenario, Result
 from core.formulas import compute_rates
 from ui.widgets import kpi_tile, sticky_control_bar
+from ui.theming import apply_theme
 
+apply_theme()
 st.title("📊 ダッシュボード")
 
 master_dict = st.session_state.get("master", DEFAULT_MASTER.model_dump())

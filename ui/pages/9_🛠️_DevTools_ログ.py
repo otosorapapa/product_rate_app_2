@@ -1,7 +1,9 @@
 import streamlit as st
 from core.audit import AuditLog
 from ui.widgets import sticky_control_bar
+from ui.theming import apply_theme
 
+apply_theme()
 st.title("🛠️ DevTools ログ")
 
 log: AuditLog | None = st.session_state.get("audit")

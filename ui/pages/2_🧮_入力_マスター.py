@@ -4,7 +4,9 @@ from pydantic import ValidationError
 from core.constants import DEFAULT_MASTER
 from core.models import Master
 from ui.widgets import sticky_control_bar
+from ui.theming import apply_theme
 
+apply_theme()
 st.title("🧮 入力 マスター")
 
 master_dict = st.session_state.get("master", DEFAULT_MASTER.model_dump())
