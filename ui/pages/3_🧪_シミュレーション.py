@@ -8,7 +8,9 @@ from core.formulas import compute_rates
 from core.constants import DEFAULT_MASTER, DEFAULT_SCENARIO
 from core.audit import AuditLog
 from ui.widgets import kpi_tile, sticky_control_bar
+from ui.theming import apply_theme
 
+apply_theme()
 st.title("🧪 シミュレーション")
 
 master_dict = st.session_state.get("master", DEFAULT_MASTER.model_dump())

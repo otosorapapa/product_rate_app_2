@@ -1,3 +1,8 @@
 [theme]
-base="light"
-primaryColor="#009E73"
+# Deep navy base with subtle green accent
+base = "dark"
+primaryColor = "#2E8B57"
+backgroundColor = "#0B1E39"
+secondaryBackgroundColor = "#1B2A41"
+textColor = "#E0E0E0"
+font = "sans serif"

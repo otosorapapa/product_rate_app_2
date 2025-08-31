@@ -2,7 +2,9 @@ import json
 import streamlit as st
 from core.models import Result
 from ui.widgets import sticky_control_bar
+from ui.theming import apply_theme
 
+apply_theme()
 st.title("📑 結果 エクスポート")
 
 if "result" in st.session_state:

@@ -1,0 +1,36 @@
+/* McKinsey-style refined theme */
+
+html, body, [data-testid="stAppViewContainer"], .stApp {
+    background-color: #0B1E39;
+    color: #E0E0E0;
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    line-height: 1.6;
+}
+
+.block-container {
+    padding: 2rem 3rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #FFFFFF;
+}
+
+.stButton>button {
+    background-color: #2E8B57;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.stButton>button:hover {
+    background-color: #25724A;
+}
+
+a {
+    color: #3A7CA5;
+}
+
