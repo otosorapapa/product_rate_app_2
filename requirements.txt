@@ -1,3 +1,4 @@
 # Minimal dependencies for core functionality.
 # UI-related packages were removed to avoid heavy build requirements.
 pydantic==2.6.4
+openai>=1.0.0

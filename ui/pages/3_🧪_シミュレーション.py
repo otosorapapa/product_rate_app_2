@@ -7,6 +7,7 @@ from core.models import Master, Scenario, Result
 from core.formulas import compute_rates
 from core.constants import DEFAULT_MASTER, DEFAULT_SCENARIO
 from core.audit import AuditLog
+from core.genai import explain_result, generate_comment
 from ui.widgets import kpi_tile, sticky_control_bar
 from ui.theming import apply_theme
 
@@ -55,6 +56,12 @@ if "result" in st.session_state:
     res = Result(**st.session_state["result"])
     kpi_tile("必要賃率 (円/時)", res.required_rate)
     kpi_tile("損益分岐賃率 (円/時)", res.break_even_rate)
+
+    st.subheader("AI解説")
+    st.write(explain_result(res))
+
+    st.subheader("AIコメント")
+    st.write(generate_comment(res))
 
     master = Master(**master_dict)
     components = [
